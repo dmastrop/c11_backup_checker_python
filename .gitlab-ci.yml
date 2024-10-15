@@ -37,6 +37,7 @@ push:
 # to deploy this if it is a feature branch or development branch. 
 # NOTE: the CMD in the Dockerfile is python main.py so that command will run when the docker container instance is run. The 
 # .env variables below should be acceessible by it.
+deploy:
   stage: deploy
   before_script:
     - echo 'db_host=10.36.7.11' >> .env
