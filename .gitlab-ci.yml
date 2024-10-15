@@ -52,6 +52,8 @@ deploy:
     - echo 'zulip_topic=backups' >> .env
   script:
     - docker run --env-file .env $CI_REGISTRY_IMAGE:latest
+  allow_failure: true
+  # this will keep the pipeline going to cleanup stage even if the above python copare fails
   only:
     - main
 
