@@ -1,0 +1,61 @@
+stages:
+  - build
+  - push
+  - deploy
+  - cleanup
+
+# 2 images will be created, one with the COMMIT_SHORT_SHA has and one with latest as their tags
+# Reference predefined variables here:   https://docs.gitlab.com/ee/ci/variables/predefined_variables.html
+# The . indicates the Dockerfile in the current root directory of this project
+# CI_REGISTRY_USER The username to push containers to the project’s GitLab container registry. Only available if the container registry is enabled for the project.
+# CI_REGISTRY_PASSWORD The password to push containers to the GitLab project’s container registry. Only available if the container registry is enabled for the project. This password value is the same as the CI_JOB_TOKEN and is valid only as long as the job is running. Use the CI_DEPLOY_PASSWORD for long-lived access to the registr
+# CI_REGISTRY_IMAGE Base address for the container registry to push, pull, or tag project’s images, formatted as <host>[:<port>]/<project_full_path>. For example: registry.gitlab.example.com/my_group/my_project. Image names must follow the container registry naming convention. Only available if the container registry is enabled for the project.
+# CI_REGISTRY Address of the container registry server, formatted as <host>[:<port>]. For example: registry.gitlab.example.com. Only available if the container registry is enabled for the GitLab instance.
+#
+build:
+  stage: build
+  script:
+    - docker build -t $CI_REGISTRY_IMAGE:$CI_PIPELINE_IID-$CI_COMMIT_SHORT_SHA -t $CI_REGISTRY_IMAGE:latest .
+
+# Push both of these images to the private image registry in gitlab. This listens on a different port from gitlab as indicated# in the ansible gitlab playbook> As noted in variable definitions above, these variables are all pre-defined and are used 
+# below.....This push stage below pushes the 2 images created above on the runner to the gitlab private image repo.
+#
+push:
+  stage: push
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker push $CI_REGISTRY_IMAGE:$CI_PIPELINE_IID-$CI_COMMIT_SHORT_SHA
+    - docker push $CI_REGISTRY_IMAGE:latest
+
+# the before_script will create the .env file on the fly. So it does not need to be pushed to gitlab.  The sensitive ones
+# have already been entered directly into the gitlab project, namely db_password and zulip_bot_api_key      
+# .env is still in the .gitignore and will not be pushed. The deploy will only occur if we push to the main branch as noted
+# in the code below.  The .env vars below are used in the main.py as this python app needs access to the zulip stream
+# as well as to the maraidb db on the VPS. maraidb is installed as a sysctl service on the VPS an zulip as an lxc container
+# on the VPS
+# docker run will bring up the :laetst docker image on the VPS running python 3.10 image so that the main.py python script can finally be executed.  Note that it will only deploy if the push is to the main branch of the gitlab repo. We do not want 
+# to deploy this if it is a feature branch or development branch. 
+# NOTE: the CMD in the Dockerfile is python main.py so that command will run when the docker container instance is run. The 
+# .env variables below should be acceessible by it.
+  stage: deploy
+  before_script:
+    - echo 'db_host=10.36.7.11' >> .env
+    - echo 'db_username=backup_script' >> .env
+    - echo 'db_password='${db_password} >> .env
+    - echo 'database=backups' >> .env
+    - echo 'db_table=list' >> .env
+    - echo 'zulip_bot_name=cloudnetworktesting-bot' >> .env
+    - echo 'zulip_bot_api_key='${zulip_bot_api_key} >> .env
+    - echo 'zulip_organization=zulip.linode.cloudnetworktesting.com' >> .env
+    - echo 'zulip_stream=vps' >> .env
+    - echo 'zulip_topic=backups' >> .env
+  script:
+    - docker run --env-file .env $CI_REGISTRY_IMAGE:latest
+  only:
+    - main
+
+# clean up the old docker images from the gitlab registry server. The gitlab runner created them above and it removes them below. Otherwise the images will build up rapdily.
+cleanup:
+  stage: cleanup
+  script:
+    - docker rmi $CI_REGISTRY_IMAGE:$CI_PIPELINE_IID-$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE:latest -f
