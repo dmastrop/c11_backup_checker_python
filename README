@@ -1,0 +1,60 @@
+port over c11 ansible repo README part for Gitlab project2 python backup checker:
+
+## Python backup-checker application (source code) deployment with gitlab:
+
+This is a deployment of a full fledged application with a multi-stage .gitlab-ci.yml pipeline configuration file.
+
+
+### high level overview:
+
+Push .gitlab-ci.yml to the gitlab repo. This will notify runner to run the script.
+It will build the docker image, push to private registry on gitlab, and then deploy the docker image from the private registry, i.e. the python docker container which will run the backup script main.py. it is running python image 3.10 (the docker python container) and from the manual testing from EC2 controller running python 3.9.13 and windows VPN client python 3.9.13 it should be ok. There were some lib dependency issues with the EC2 ubuntu controller but that was resolved by adding 2 libraries below. When testing on the Docker python 3.10 we may need to add such libararies when testing this on the docker container.
+
+sudo apt install libmariadb3 libmariadb-dev
+
+FROM python:3.10
+WORKDIR /backup-checker
+COPY ./app /backup-checker
+RUN pip install --no-cache-dir -r requirements.txt
+CMD ["python", "main.py"] <<< it runs the main.py when it comes up (after deployed via the .gitlab-ci.yml)
+
+My directory name is backup_checker_python, but only the app folder is going to be copied over not the complete directory.
+
+
+From the Dockerfile comments:
+
+##NOTES:
+#copy over the entire app directory to backup-checker directory in the docker container.  I am not pushing over .env because
+#that will be created on the fly in the .gitlab-ci.yml file
+#The python:3.10 docker image has been tested to see that it contains the 2 libs below. These are required now that the 
+#main.py python backup-checker is using the mariadb connector instead of mysql.connector function.
+#To verify the docker python:3.10 image do the following:
+#docker run -it --rm python:3.10 bash (step 1). This start a terminal session in the container itself.
+#dpkg -l | grep libmariadb3
+#dpkg -l | grep libmariadb-dev
+#both of these show as installed in the docker python:3.10 docker container.
+#With these libs, the pip install of dependencies requirements.txt which now has mariadb-1.1.10, should install without issues
+
+
+Need to run the main.py from a docker container running python 3.10
+
+
+
+
+### .gitlab-ci.yml stages:
+
+Need to create a Dockerfile to create the docker image.  The .gitlab-ci.yml will have a BUILD stage and will instruct the runner to create the docker image as a first stage. The runner needs the Dockerfile to do this.
+NOTE that the runner gets the entire build directory with the .gitlab-ci.yml and Dockerfile and the app directory.
+The runner copies the app directory into the docker image when it builds it as part of the BUILD stage of .gitlab-ciy.yml
+
+The app directory has the main.py requirements.txt for dependencies and the expected-backups file for compare. The .env will be created on the fly by the gitlab .gitlab-cy.yml script with the maraidb backup password and the zulip_bot_api_key being storted locally on the gitlab project for security.  So it is ok that the .env is not being pushed to the gitlab and github repos.
+
+
+
+
+### Detailed packet flows and requirements to accomodate these packet flows from python app docker container to zulip lxc docker container.
+
+There are several issues that have to be addressed with this python application being deployed to the VPS in a docker container.  The python script communicates with the mariadb to query backups and also needs to message the backup status to zulip, the lxc container on the VPS running the zulip messaging service.
+
+
+
