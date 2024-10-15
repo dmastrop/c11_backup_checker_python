@@ -10,6 +10,7 @@ import mysql.connector
 import mariadb
 from tabulate import tabulate
 
+# test
 # This will load env vars from the .env file
 # They will be available to use in the rest of the code blocks below
 load_dotenv()
@@ -42,9 +43,12 @@ def configure_logging() -> None:
     console_handler.setFormatter(log_formatter)
     root_logger.addHandler(console_handler)
 
+
+
+
 # problem with the mysql.connector.connect since version 8.0.29
 # use mariadb.connect instead and mariadb.Error class as well instead of mysql.connector.Error
-# With later versinos of maraidb the mysql.connector breaks (utf8 not supported error).  See this thread 
+# With later versinos of maraidb the mysql.connector breaks (utf8 not supported error).  See this thread
 # https://stackoverflow.com/questions/73244027/character-set-utf8-unsupported-in-python-mysql-connector
 # old code is in main_original.yml, new code is below. Tested from windows Wireguard client and it works well.
 # add import maraidb to top
@@ -141,7 +145,7 @@ def send_notification(**kwargs) -> None:
 # the zulip_bot_name, the zulip_organization, the zulip_bot_api_key, and the zulip_stream
 # the function above also defines a message body and message type
 #
-# 
+#
 #
 def main() -> None:
     configure_logging()
