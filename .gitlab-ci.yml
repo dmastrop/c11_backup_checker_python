@@ -57,7 +57,12 @@ deploy:
   only:
     - main
 
-# clean up the old docker images from the gitlab registry server. The gitlab runner created them above and it removes them below. Otherwise the images will build up rapdily.
+# clean up the old docker images from the VPS. The giltab-runner is installed as a service on the VPS itself.
+# As such the gitlab runner runs the docker containers and stores the docker images on the VPS itself.
+# The docker containers self expire but the images can build up on the VPS. This stage removes the images from
+# the VPS (not the container registry in the gitlab container).  The gitlab runner created them above and it 
+# removes them below. Otherwise the images will build up rapdily on the VPS. This needs to run regardless of the 
+# deploy state "pass" (no diff) or "fail" (diff"
 cleanup:
   stage: cleanup
   script:
