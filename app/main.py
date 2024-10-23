@@ -27,6 +27,7 @@ from tabulate import tabulate
 # test 15
 # test 16
 # test17
+# test18
 # This will load env vars from the .env file
 # They will be available to use in the rest of the code blocks below
 load_dotenv()
