@@ -37,6 +37,8 @@ push:
 # to deploy this if it is a feature branch or development branch. 
 # NOTE: the CMD in the Dockerfile is python main.py so that command will run when the docker container instance is run. The 
 # .env variables below should be acceessible by it.
+# add the --rm flag to the docker run command in the script section below so that the old docker ps -a
+# exited containers do the build up on the VPS
 deploy:
   stage: deploy
   before_script:
@@ -51,7 +53,7 @@ deploy:
     - echo 'zulip_stream=vps' >> .env
     - echo 'zulip_topic=backups' >> .env
   script:
-    - docker run --env-file .env $CI_REGISTRY_IMAGE:latest
+    - docker run --rm --env-file .env $CI_REGISTRY_IMAGE:latest
   allow_failure: true
   # this will keep the pipeline going to cleanup stage even if the above python copare fails
   only:
