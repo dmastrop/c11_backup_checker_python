@@ -28,8 +28,8 @@ push:
     - docker push $CI_REGISTRY_IMAGE:latest
 #allow_failure: true
 #cause failure with mispelling CI_REGISTRY_IMAGE1 instead of CI_REGISTRY_IMAGE    
-# the allow_failure here works but unintended flow. The deploy stage is run with the older image and it gives valse 
-#results.
+# the allow_failure here works but unintended flow. The deploy stage is run with the older image and it gives
+# false results.
 
 # the before_script will create the .env file on the fly. So it does not need to be pushed to gitlab.  The sensitive ones
 # have already been entered directly into the gitlab project, namely db_password and zulip_bot_api_key      
