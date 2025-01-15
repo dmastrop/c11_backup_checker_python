@@ -75,4 +75,5 @@ cleanup:
     - docker rmi $CI_REGISTRY_IMAGE:$CI_PIPELINE_IID-$CI_COMMIT_SHORT_SHA $CI_REGISTRY_IMAGE:latest -f
   when: always
  #when: alwys will ensure that the cleanup still occurs even with a push stage failure.  Any stage after build 
- #requires a cleanup    
+ #requires a cleanup  
+ #test  
